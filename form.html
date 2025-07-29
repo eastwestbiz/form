@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Bhavsar Kshatriya Community Membership Application</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+        <!-- Vendor & Core Libraries -->
+<!-- Core CSS -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+
+<!-- Core JS -->
+<script src="/js/core/main.js"></script>
+<script src="/js/core/config.js"></script>
+<script src="/js/core/error-handler.js"></script>
+<!-- Utility JS -->
+<script src="/js/utils/dom.utils.js"></script>
+<script src="/js/utils/loading.utils.js"></script>
+<script src="/js/utils/format.utils.js"></script>
+<script src="/js/utils/lazy-load.utils.js"></script>
+<script src="/js/utils/suggestions.utils.js"></script>
+<script src="/js/utils/file-upload.utils.js"></script>
+
+<!-- Vendor Wrappers -->
+<script src="/js/vendors/sweetalert.js"></script>
+<script src="/js/vendors/recaptcha.js"></script>
+<script src="/js/vendors/firebase.js"></script>
+<!-- Modules: Auth -->
+<script src="/js/modules/auth/auth.service.js"></script>
+<script src="/js/modules/auth/otp.service.js"></script>
+<script src="/js/modules/auth/session.service.js"></script>
+<!-- Modules: Form -->
+<script src="/js/modules/form/form.service.js"></script>
+<script src="/js/modules/form/form-validation.service.js"></script>
+<script src="/js/modules/form/form-submit.service.js"></script>
+<script src="/js/modules/form/form-autosave.service.js"></script>
+<!-- Modules: API -->
+<script src="/js/modules/api/api.service.js"></script>
+<script src="/js/modules/api/api-endpoints.js"></script>
+<script src="/js/modules/api/api-interceptors.js"></script>
+<script src="/js/modules/api/api-mocks.js"></script>
+<!-- Features -->
+<script src="/js/features/registration/registration.controller.js"></script>
+<script src="/js/features/registration/registration.view.js"></script>
+<!-- Components (example, if needed) -->
+<script src="/js/components/address-input/address-input.js"></script>
+<script src="/js/components/file-upload/file-upload.js"></script>
+<script src="/js/components/otp-verification/otp-verification.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+ 
+
+        <script>
+        function showRegistrationForm() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('registrationSection').classList.remove('hidden');
+        }
+        function startApplication() {
+            // Check if required checkboxes are checked
+            if (!document.getElementById('checkAadhar').checked || !document.getElementById('checkPhoto').checked) {
+                Swal.fire('Please check all required documents before proceeding.', '', 'warning');
+                return;
+            }
+            document.getElementById('documentChecklist').classList.add('hidden');
+            document.getElementById('applicationForm').classList.remove('hidden');
+        }
+        </script>
+    </head>
+    
+    <body>
+
+        <div class="form-group">
+            <div id="recaptcha-container"></div>
+        </div>
+
+        <div class="container">
+            <!-- Login Section -->
+            <div id="loginSection" class="form-container">
+                <h1>Member Login</h1>
+                <div id="loginAlert" class="alert hidden"></div>
+                <div class="form-group">
+                    <label for="loginUniqueId">Samuday ID</label>
+                    <input
+                        type="text"
+                        id="loginUniqueId"
+                        class="form-control"
+                        placeholder="Enter your Samuday ID"
+                        required
+                        maxlength="20"
+                        pattern="[A-Za-z0-9]{1,20}"
+                        title="Up to 20 alphanumeric characters only"
+                        oninput="this.value = this.value.replace(/[^A-Za-z0-9]/g, '').slice(0,20)"
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="loginEmail">Registered Email</label>
+                    <input
+                        type="email"
+                        id="loginEmail"
+                        class="form-control"
+                        placeholder="Enter your registered email"
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label>Verification Code</label>
+                    <div class="otp-container">
+                        <input
+                            type="text"
+                            id="loginOtp"
+                            class="otp-input"
+                            placeholder="OTP"
+                            maxlength="6"
+                        >
+                        <button type="button" class="btn btn-primary" onclick="sendLoginOtp()">Send OTP</button>
+                        <button type="button" class="btn btn-primary" onclick="verifyLoginOtp()">Verify</button>
+                    </div>
+                    <div id="loginVerificationStatus" class="verification-status"></div>
+                </div>
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="loginBtn"
+                    onclick="loginUser()"
+                    disabled
+                >Login</button>
+                <div class="form-group" style="margin-top: 20px; text-align: center;">
+                    <p>New member?
+                        <a href="#" onclick="showRegistrationForm()" style="color: var(--accent-color);">Register here</a>
+                    </p>
+                </div>
+            </div>
+            <!-- Registration Section -->
+            <div id="registrationSection" class="form-container hidden">
+                <div id="documentChecklist">
+                    <h2>Before You Begin: Document Checklist</h2>
+                    <p>Please ensure you have the following documents ready before starting your application:</p>
+                    <div class="document-checklist">
+                        <div class="checklist-item">
+                            <label>
+                                <input type="checkbox" id="checkAadhar" required> Aadhar Card (Front and Back)
+                            </label>
+                        </div>
+                        <div class="checklist-item">
+                            <label>
+                                <input type="checkbox" id="checkPhoto" required> Passport-sized Photograph
+                            </label>
+                        </div>
+                        <div class="checklist-item">
+                            <label>
+                                <input type="checkbox" id="checkCaste"> Caste Certificate (Optional)
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            onclick="startApplication()"
+                            style="margin-top: 20px;"
+                        >I Have All Required Documents</button>
+                    </div>
+                </div>
+                <div id="applicationForm" class="hidden">
+                    <h1>BKJS New Membership Application</h1>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="formProgress"></div>
+                    </div>
+                    <div id="successMessage" class="alert alert-success hidden"></div>
+                    <div id="errorMessage" class="alert alert-error hidden"></div>
+                    <form id="membershipForm">
+                        <!-- Personal Information Section -->
+                        <h2>Section 1: Personal Information</h2>
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <div class="name-fields">
+                                <div>
+                                    <label class="sub-label">First Name</label>
+                                    <input
+                                        type="text"
+                                        id="firstName"
+                                        placeholder="First Name"
+                                        required
+                                    >
+                                </div>
+                                <div>
+                                    <label class="sub-label">Middle Name</label>
+                                    <input type="text" id="middleName" placeholder="Middle Name">
+                                </div>
+                                <div>
+                                    <label class="sub-label">Last Name</label>
+                                    <input
+                                        type="text"
+                                        id="lastName"
+                                        placeholder="Last Name"
+                                        required
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="gender"
+                                        value="Male"
+                                        required
+                                    > Male
+                                </label>
+                                <label>
+                                    <input type="radio" name="gender" value="Female"> Female
+                                </label>
+                                <label>
+                                    <input type="radio" name="gender" value="Other"> Other
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input
+                                type="date"
+                                id="dob"
+                                required
+                                onchange="calculateAge()"
+                                oninput="calculateAge()"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input
+                                type="number"
+                                id="age"
+                                min="1"
+                                readonly
+                            >
+                        </div>
+                        <script>
+                        function calculateAge() {
+                            const dobInput = document.getElementById('dob');
+                            const ageInput = document.getElementById('age');
+                            const dob = new Date(dobInput.value);
+                            if (isNaN(dob.getTime())) {
+                                ageInput.value = '';
+                                return;
+                            }
+                            const today = new Date();
+                            let age = today.getFullYear() - dob.getFullYear();
+                            const m = today.getMonth() - dob.getMonth();
+                            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+                                age--;
+                            }
+                            ageInput.value = age;
+                        }
+                        </script>
+                        <div class="form-group">
+                            <label>Varna/Caste</label>
+                            <select id="caste" required>
+                                <option value="">-- Select Caste --</option>
+                                <option value="01-Bhavasar">Bhavasar</option>
+                                <option value="02-Bhavasara">Bhavasara</option>
+                                <option value="03-Bhavasara Kshatriya">Bhavasara Kshatriya</option>
+                                <option value="04-Bhavsa">Bhavsa</option>
+                                <option value="05-Bhavsar">Bhavsar</option>
+                                <option value="06-Bhavsar Kshatriya">Bhavsar Kshatriya</option>
+                                <option value="07-Bhavsar Kshatriya Rangari">Bhavsar Kshatriya Rangari</option>
+                                <option value="08-Bhavsar Kshatriya Shimpi">Bhavsar Kshatriya Darzi</option>
+                                <option value="09-Bhavsar Kshatriya Shimpi">Bhavsar Kshatriya Darji</option>
+                                <option value="10-Bhavsar Kshatriya Shimpi">Bhavsar Kshatriya Shimpi</option>
+                                <option value="11-Bhavsar Rangari">Bhavsar Rangari</option>
+                                <option value="12-Bhavser">Bhavser</option>
+                                <option value="13-Bhavshar">Bhavshar</option>
+                                <option value="14-Bhawasar">Bhawasar</option>
+                                <option value="15-Bhawsar">Bhawsar</option>
+                                <option value="16-Rangārey (Bhavsar)">Rangārey (Bhavsar)</option>
+                                <option value="17-Rangarez (Bhavsara Kshatriya)">Rangarez (Bhavsara Kshatriya)</option>
+                                <option value="18-Rangari Bhavsar">Rangari Bhavsar</option>
+                                <option value="19-Rangrej (Bhavsar)">Rangrej (Bhavsar)</option>
+                            </select>
+                            <p class="sub-label">(Please provide supporting documents if required)</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Surname</label>
+                            <input
+                                type="text"
+                                id="surname"
+                                placeholder="Adnave, family Name"
+                                required
+                                autocomplete="off"
+                                oninput="suggestField('surname', this)"
+                            >
+                            <div id="surnameSuggestions" class="suggestions-list"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Gothra</label>
+                            <input
+                                type="text"
+                                id="gothra"
+                                placeholder="Your Gothra (if known)"
+                                autocomplete="off"
+                                oninput="suggestField('gothra', this)"
+                            >
+                            <div id="gothraSuggestions" class="suggestions-list"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Vamsha</label>
+                            <input
+                                type="text"
+                                id="vamsha"
+                                placeholder="Your Vamsha (if known)"
+                                autocomplete="off"
+                                oninput="suggestField('vamsha', this)"
+                            >
+                            <div id="vamshaSuggestions" class="suggestions-list"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Veda</label>
+                            <input
+                                type="text"
+                                id="veda"
+                                placeholder="Your Veda (if known)"
+                                autocomplete="off"
+                                oninput="suggestField('veda', this)"
+                            >
+                            <div id="vedaSuggestions" class="suggestions-list"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Kuldevi</label>
+                            <input
+                                type="text"
+                                id="kuldevi"
+                                placeholder="Your Kuldevi (if known)"
+                                autocomplete="off"
+                                oninput="suggestField('kuldevi', this)"
+                            >
+                            <div id="kuldeviSuggestions" class="suggestions-list"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Kuldevata</label>
+                            <input
+                                type="text"
+                                id="kuldevata"
+                                placeholder="Your Kuldevta (if known)"
+                                autocomplete="off"
+                                oninput="suggestField('kuldevata', this)"
+                            >
+                            <div id="kuldevataSuggestions" class="suggestions-list"></div>
+                        </div>
+                        <script>
+                    // scriptUrl is already declared globally above; do not redeclare here.
+
+                    async function suggestField(field, inputElem) {
+                        const value = inputElem.value.trim();
+                        const suggestionBox = document.getElementById(field + 'Suggestions');
+                        suggestionBox.innerHTML = '';
+                        suggestionBox.style.display = 'none';
+
+                        if (value.length < 2) return;
+
+                        try {
+                            const res = await fetch(`${scriptUrl}?action=suggest&field=${encodeURIComponent(field)}&q=${encodeURIComponent(value)}`);
+                            const data = await res.json();
+                            if (data.success && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+                                data.suggestions.forEach(s => {
+                                    const div = document.createElement('div');
+                                    div.textContent = s;
+                                    div.onclick = () => {
+                                        inputElem.value = s;
+                                        suggestionBox.innerHTML = '';
+                                        suggestionBox.style.display = 'none';
+                                    };
+                                    suggestionBox.appendChild(div);
+                                });
+                                suggestionBox.style.display = 'block';
+                            }
+                        } catch (e) {
+                            // fail silently
+                        }
+                    }
+
+                    // Hide suggestions when clicking outside
+                    document.addEventListener('click', function(e) {
+                        ['surname','gothra','vamsha','veda','kuldevi','kuldevata'].forEach(field => {
+                            const box = document.getElementById(field + 'Suggestions');
+                            if (box && !box.contains(e.target) && document.getElementById(field) !== e.target) {
+                                box.innerHTML = '';
+                                box.style.display = 'none';
+                            }
+                        });
+                    });
+                        </script>
+                        <div class="form-group">
+                            <label>Father's Name</label>
+                            <input type="text" id="fatherName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Mother's Name</label>
+                            <input type="text" id="motherName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Marital Status</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="maritalStatus"
+                                        value="Single"
+                                        required
+                                    > Single
+                                </label>
+                                <label>
+                                    <input type="radio" name="maritalStatus" value="Married"> Married
+                                </label>
+                                <label>
+                                    <input type="radio" name="maritalStatus" value="Separated"> Separated
+                                </label>
+                                <label>
+                                    <input type="radio" name="maritalStatus" value="Divorced"> Divorced
+                                </label>
+                                <label>
+                                    <input type="radio" name="maritalStatus" value="Widowed"> Widowed
+                                </label>
+                            </div>
+                        </div>
+                        <!-- Address Information Section -->
+                        <h2>Section 2: Address Information</h2>
+                        <div class="form-group">
+                            <label>Current Address</label>
+                            <div class="address-fields">
+                                <input
+                                    type="text"
+                                    id="currentAddress1"
+                                    placeholder="Address Line 1"
+                                    required
+                                >
+                                <input type="text" id="currentAddress2" placeholder="Address Line 2">
+                                <div class="address-line">
+                                    <input
+                                        type="text"
+                                        id="currentCity"
+                                        placeholder="City"
+                                        required
+                                        autocomplete="off"
+                                        oninput="suggestAddressField('city', this)"
+                                    >
+                                    <div id="currentCitySuggestions" class="suggestions-list"></div>
+                                    <input
+                                        type="text"
+                                        id="currentState"
+                                        placeholder="State"
+                                        required
+                                        autocomplete="off"
+                                        oninput="suggestAddressField('state', this)"
+                                    >
+                                    <div id="currentStateSuggestions" class="suggestions-list"></div>
+                                    <input
+                                        type="text"
+                                        id="currentPincode"
+                                        placeholder="Pin Code"
+                                        required
+                                        autocomplete="off"
+                                        oninput="suggestAddressField('pincode', this)"
+                                    >
+                                    <div id="currentPincodeSuggestions" class="suggestions-list"></div>
+                                    <script>
+                                // Use the global scriptUrl variable for address suggestions as well
+
+                                async function suggestAddressField(field, inputElem) {
+                                    const value = inputElem.value.trim();
+                                    const suggestionBox = document.getElementById(
+                                        inputElem.id + 'Suggestions'
+                                    );
+                                    suggestionBox.innerHTML = '';
+                                    suggestionBox.style.display = 'none';
+
+                                    if (value.length < 2) return;
+
+                                    try {
+                                        const res = await fetch(`${scriptUrl}?action=suggestAddress&field=${encodeURIComponent(field)}&q=${encodeURIComponent(value)}`);
+                                        const data = await res.json();
+                                        if (data.success && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+                                            data.suggestions.forEach(s => {
+                                                const div = document.createElement('div');
+                                                div.textContent = s;
+                                                div.onclick = () => {
+                                                    inputElem.value = s;
+                                                    suggestionBox.innerHTML = '';
+                                                    suggestionBox.style.display = 'none';
+                                                };
+                                                suggestionBox.appendChild(div);
+                                            });
+                                            suggestionBox.style.display = 'block';
+                                        }
+                                    } catch (e) {
+                                        // fail silently
+                                    }
+                                }
+
+                                // Hide suggestions when clicking outside
+                                document.addEventListener('click', function(e) {
+                                    ['currentCity','currentState','currentPincode'].forEach(field => {
+                                        const box = document.getElementById(field + 'Suggestions');
+                                        if (box && !box.contains(e.target) && document.getElementById(field) !== e.target) {
+                                            box.innerHTML = '';
+                                            box.style.display = 'none';
+                                        }
+                                    });
+                                });
+                                    </script>
+                                </div>
+                                <div class="address-line">
+                                    <input
+                                        type="text"
+                                        id="currentCountry"
+                                        placeholder="Country"
+                                        value="India"
+                                        required
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Permanent Address</label>
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="sameAsCurrent"> Same as Current Address
+                                </label>
+                            </div>
+                            <div class="address-fields">
+                                <input
+                                    type="text"
+                                    id="permanentAddress1"
+                                    placeholder="Address Line 1"
+                                    required
+                                >
+                                <input type="text" id="permanentAddress2" placeholder="Address Line 2">
+                                <div class="address-line">
+                                    <input
+                                        type="text"
+                                        id="permanentCity"
+                                        placeholder="City"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        id="permanentState"
+                                        placeholder="State"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        id="permanentPincode"
+                                        placeholder="Pin Code"
+                                        required
+                                    >
+                                </div>
+                                <div class="address-line">
+                                    <input
+                                        type="text"
+                                        id="permanentCountry"
+                                        placeholder="Country"
+                                        value="India"
+                                        required
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Contact Information Section -->
+                        <h2>Section 3: Contact Information</h2>
+                        <div class="form-group">
+                            <label>Mobile Number</label>
+                            <div class="address-line">
+                                <input
+                                    type="tel"
+                                    id="primaryMobile"
+                                    placeholder="Primary"
+                                    required
+                                >
+                                <input type="tel" id="alternateMobile" placeholder="Alternate (if any)">
+                            </div>
+                            <div class="otp-container" id="mobileOtpSection">
+                                <input
+                                    type="text"
+                                    id="mobileOtp"
+                                    class="otp-input"
+                                    placeholder="OTP"
+                                    maxlength="6"
+                                >
+                                <button type="button" class="btn btn-primary" onclick="sendMobileOtp()">Send OTP</button>
+                                <button type="button" class="btn btn-primary" onclick="verifyMobileOtp()">Verify</button>
+                            </div>
+                            <div id="mobileVerificationStatus" class="verification-status"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <div class="address-line">
+                                <input
+                                    type="email"
+                                    id="primaryEmail"
+                                    placeholder="Primary"
+                                    required
+                                >
+                                <input type="email" id="alternateEmail" placeholder="Alternate (if any)">
+                            </div>
+                            <div class="otp-container" id="emailOtpSection">
+                                <input
+                                    type="text"
+                                    id="emailOtp"
+                                    class="otp-input"
+                                    placeholder="OTP"
+                                    maxlength="6"
+                                >
+                                <button type="button" class="btn btn-primary" onclick="sendEmailOtp()">Send OTP</button>
+                                <button type="button" class="btn btn-primary" onclick="verifyEmailOtp()">Verify</button>
+                            </div>
+                            <div id="emailVerificationStatus" class="verification-status"></div>
+                        </div>
+                        <!-- Identity Verification Section -->
+                        <h2>Section 4: Identity and Caste Verification</h2>
+                        <div class="form-group">
+                            <label>Aadhar Card Details</label>
+                            <input
+                                type="text"
+                                id="aadharNumber"
+                                placeholder="Aadhar Number"
+                                required
+                                pattern="\d{16}"
+                                maxlength="16"
+                                minlength="16"
+                                inputmode="numeric"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,16)"
+                            >
+                            <span class="sub-label">Enter 16-digit Aadhar number</span>
+                            <label>Upload Scanned Copy of Aadhar Card</label>
+                            <div class="file-upload">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('aadharFront').click()">Upload Front Side</button>
+                                <span class="file-name" id="aadharFrontName">No file selected</span>
+                                <input
+                                    type="file"
+                                    id="aadharFront"
+                                    accept="image/*,.pdf"
+                                    style="display: none;"
+                                    required
+                                >
+                            </div>
+                            <div class="file-upload">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('aadharBack').click()">Upload Back Side</button>
+                                <span class="file-name" id="aadharBackName">No file selected</span>
+                                <input
+                                    type="file"
+                                    id="aadharBack"
+                                    accept="image/*,.pdf"
+                                    style="display: none;"
+                                    required
+                                >
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Caste Certificate</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input type="radio" name="hasCasteCertificate" value="yes"> Yes
+                                </label>
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="hasCasteCertificate"
+                                        value="no"
+                                        checked
+                                    > No
+                                </label>
+                            </div>
+                            <div id="casteCertificateUpload" class="hidden">
+                                <div class="file-upload">
+                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('casteCertificate').click()">Upload Caste Certificate</button>
+                                    <span class="file-name" id="casteCertificateName">No file selected</span>
+                                    <input
+                                        type="file"
+                                        id="casteCertificate"
+                                        accept="image/*,.pdf"
+                                        style="display: none;"
+                                    >
+                                </div>
+                            </div>
+                            <script>
+                        // Show/hide caste certificate upload based on radio selection
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const radios = document.getElementsByName('hasCasteCertificate');
+                            const uploadDiv = document.getElementById('casteCertificateUpload');
+                            function toggleUpload() {
+                                if (document.querySelector('input[name="hasCasteCertificate"]:checked').value === 'yes') {
+                                    uploadDiv.classList.remove('hidden');
+                                    document.getElementById('casteCertificate').required = true;
+                                } else {
+                                    uploadDiv.classList.add('hidden');
+                                    document.getElementById('casteCertificate').required = false;
+                                }
+                            }
+                            radios.forEach(r => r.addEventListener('change', toggleUpload));
+                            toggleUpload();
+                        });
+                            </script>
+                        </div>
+                        <div class="form-group">
+                            <label>Profile Photo</label>
+                            <p class="sub-label">Upload a recent passport-sized photograph</p>
+                            <div class="file-upload">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('profilePhoto').click()">Upload Photo</button>
+                                <span class="file-name" id="profilePhotoName">No file selected</span>
+                                <input
+                                    type="file"
+                                    id="profilePhoto"
+                                    accept="image/*"
+                                    style="display: none;"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        
+                        <!-- Family Details Section -->
+                        <h2>Section 5: Family Details</h2>
+                        <div class="form-group">
+                            <label>Family Members (Max 10)</label>
+                            <div id="familyMembers">
+                                <!-- Family members will be added dynamically -->
+                                <div class="family-member" id="familyMember1">
+                                    <input
+                                        type="text"
+                                        id="familyName1"
+                                        placeholder="1st Family Member Full Name"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        id="familyRelationship1"
+                                        placeholder="Relationship"
+                                        required
+                                    >
+                                    <input
+                                        type="number"
+                                        id="familyAge1"
+                                        placeholder="Age"
+                                        required
+                                    >
+                                </div>
+                                <div class="family-member" id="familyMember2">
+                                    <input type="text" id="familyName2" placeholder="2nd Family Member Full Name">
+                                    <input type="text" id="familyRelationship2" placeholder="Relationship">
+                                    <input type="number" id="familyAge2" placeholder="Age">
+                                </div>
+                                <div class="family-member" id="familyMember3">
+                                    <input type="text" id="familyName3" placeholder="3rd Family Member Full Name">
+                                    <input type="text" id="familyRelationship3" placeholder="Relationship">
+                                    <input type="number" id="familyAge3" placeholder="Age">
+                                </div>
+                                <div class="family-member" id="familyMember4">
+                                    <input type="text" id="familyName4" placeholder="4th Family Member Full Name">
+                                    <input type="text" id="familyRelationship4" placeholder="Relationship">
+                                    <input type="number" id="familyAge4" placeholder="Age">
+                                </div>
+                                <div class="family-member" id="familyMember5">
+                                    <input type="text" id="familyName5" placeholder="5th Family Member Full Name">
+                                    <input type="text" id="familyRelationship5" placeholder="Relationship">
+                                    <input type="number" id="familyAge5" placeholder="Age">
+                                </div>
+                                <div class="family-member" id="familyMember6">
+                                    <input type="text" id="familyName6" placeholder="6th Family Member Full Name">
+                                    <input type="text" id="familyRelationship6" placeholder="Relationship">
+                                    <input type="number" id="familyAge6" placeholder="Age">
+                                </div>
+                                <div class="family-member" id="familyMember7">
+                                    <input type="text" id="familyName7" placeholder="7th Family Member Full Name">
+                                    <input type="text" id="familyRelationship7" placeholder="Relationship">
+                                    <input type="number" id="familyAge7" placeholder="Age">
+                                </div>
+                                <div class="family-member" id="familyMember8">
+                                    <input type="text" id="familyName8" placeholder="8th Family Member Full Name">
+                                    <input type="text" id="familyRelationship8" placeholder="Relationship">
+                                    <input type="number" id="familyAge8" placeholder="Age">
+                                </div>
+                                <div class="family-member" id="familyMember9">
+                                    <input type="text" id="familyName9" placeholder="9th Family Member Full Name">
+                                    <input type="text" id="familyRelationship9" placeholder="Relationship">
+                                    <input type="number" id="familyAge9" placeholder="Age">
+                                </div>
+                                <div class="family-member" id="familyMember10">
+                                    <input type="text" id="familyName10" placeholder="10th Family Member Full Name">
+                                    <input type="text" id="familyRelationship10" placeholder="Relationship">
+                                    <input type="number" id="familyAge10" placeholder="Age">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Emergency Contact Person</label>
+                            <input
+                                type="text"
+                                id="emergencyName"
+                                placeholder="Name"
+                                required
+                            >
+                            <input
+                                type="text"
+                                id="emergencyRelationship"
+                                placeholder="Relationship"
+                                required
+                            >
+                            <input
+                                type="tel"
+                                id="emergencyMobile"
+                                placeholder="Mobile Number"
+                                required
+                            >
+                        </div>
+                        <!-- Declaration Section -->
+                        <h2>Section 6: Declaration</h2>
+                        <div class="form-group">
+                            <div class="declaration-box">
+                                <p>I,
+                                    <span id="declarationName"></span>, hereby declare that all the information provided in this application form is true and correct to the best of my knowledge. I understand that any false information may lead to the rejection of my application.
+                                </p>
+                                <div class="declaration-signature">
+                                    <div>
+                                        <label>Signature</label>
+                                        <input type="text" id="declarationSignature" required>
+                                    </div>
+                                    <div>
+                                        <label>Date</label>
+                                        <input type="date" id="declarationDate" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="g-recaptcha" data-sitekey="YOUR_RECAPTCHA_SITE_KEY"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <!-- The reCAPTCHA is already included above, so remove duplicate script include -->
+                            <div class="form-group">
+                                <div class="g-recaptcha" data-sitekey="YOUR_RECAPTCHA_SITE_KEY"></div>
+                            </div>
+                            <button
+                                type="button"
+                                class="btn btn-primary"
+                                id="submitBtn"
+                                onclick="showPreview()"
+                                disabled
+                            >Preview Application</button>
+                        </form>
+                    </div>
+                </div>
+                <!-- Update Section -->
+                <div id="updateSection" class="form-container hidden">
+                    <h1>Update Member Information</h1>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="updateProgress"></div>
+                    </div>
+                    <div id="updateSuccessMessage" class="alert alert-success hidden"></div>
+                    <div id="updateErrorMessage" class="alert alert-error hidden"></div>
+                    <form id="updateForm">
+                        <div class="form-group">
+                            <label>Unique ID</label>
+                            <input type="text" id="updateUniqueId" readonly>
+                        </div>
+                        <!-- Personal Information Section -->
+                        <h2>Section 1: Personal Information</h2>
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <div class="name-fields">
+                                <div>
+                                    <label class="sub-label">First Name</label>
+                                    <input
+                                        type="text"
+                                        id="updateFirstName"
+                                        placeholder="First Name"
+                                        required
+                                    >
+                                </div>
+                                <div>
+                                    <label class="sub-label">Middle Name</label>
+                                    <input type="text" id="updateMiddleName" placeholder="Middle Name">
+                                </div>
+                                <div>
+                                    <label class="sub-label">Last Name</label>
+                                    <input
+                                        type="text"
+                                        id="updateLastName"
+                                        placeholder="Last Name"
+                                        required
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="updateGender"
+                                        value="Male"
+                                        required
+                                    > Male
+                                </label>
+                                <label>
+                                    <input type="radio" name="updateGender" value="Female"> Female
+                                </label>
+                                <label>
+                                    <input type="radio" name="updateGender" value="Other"> Other
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input
+                                type="date"
+                                id="updateDob"
+                                required
+                                onchange="calculateUpdateAge()"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input
+                                type="number"
+                                id="updateAge"
+                                min="1"
+                                readonly
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label>Surname</label>
+                            <input
+                                type="text"
+                                id="updateSurname"
+                                placeholder="Adnave, family Name"
+                                required
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label>Father's Name</label>
+                            <input type="text" id="updateFatherName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Mother's Name</label>
+                            <input type="text" id="updateMotherName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Marital Status</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="updateMaritalStatus"
+                                        value="Single"
+                                        required
+                                    > Single
+                                </label>
+                                <label>
+                                    <input type="radio" name="updateMaritalStatus" value="Married"> Married
+                                </label>
+                                <label>
+                                    <input type="radio" name="updateMaritalStatus" value="Separated"> Separated
+                                </label>
+                                <label>
+                                    <input type="radio" name="updateMaritalStatus" value="Divorced"> Divorced
+                                </label>
+                                <label>
+                                    <input type="radio" name="updateMaritalStatus" value="Widowed"> Widowed
+                                </label>
+                            </div>
+                        </div>
+                        <!-- Address Information Section -->
+                        <h2>Section 2: Address Information</h2>
+                        <div class="form-group">
+                            <label>Current Address</label>
+                            <div class="address-fields">
+                                <input
+                                    type="text"
+                                    id="updateCurrentAddress1"
+                                    placeholder="Address Line 1"
+                                    required
+                                >
+                                <input type="text" id="updateCurrentAddress2" placeholder="Address Line 2">
+                                <div class="address-line">
+                                    <input
+                                        type="text"
+                                        id="updateCurrentCity"
+                                        placeholder="City"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        id="updateCurrentState"
+                                        placeholder="State"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        id="updateCurrentPincode"
+                                        placeholder="Pin Code"
+                                        required
+                                    >
+                                </div>
+                                <div class="address-line">
+                                    <input
+                                        type="text"
+                                        id="updateCurrentCountry"
+                                        placeholder="Country"
+                                        value="India"
+                                        required
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Permanent Address</label>
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="updateSameAsCurrent"> Same as Current Address
+                                </label>
+                            </div>
+                            <div class="address-fields">
+                                <input
+                                    type="text"
+                                    id="updatePermanentAddress1"
+                                    placeholder="Address Line 1"
+                                    required
+                                >
+                                <input type="text" id="updatePermanentAddress2" placeholder="Address Line 2">
+                                <div class="address-line">
+                                    <input
+                                        type="text"
+                                        id="updatePermanentCity"
+                                        placeholder="City"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        id="updatePermanentState"
+                                        placeholder="State"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        id="updatePermanentPincode"
+                                        placeholder="Pin Code"
+                                        required
+                                    >
+                                </div>
+                                <div class="address-line">
+                                    <input
+                                        type="text"
+                                        id="updatePermanentCountry"
+                                        placeholder="Country"
+                                        value="India"
+                                        required
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Contact Information Section -->
+                        <h2>Section 3: Contact Information</h2>
+                        <div class="form-group">
+                            <label>Mobile Number</label>
+                            <div class="address-line">
+                                <input
+                                    type="tel"
+                                    id="updatePrimaryMobile"
+                                    placeholder="Primary"
+                                    required
+                                >
+                                <input type="tel" id="updateAlternateMobile" placeholder="Alternate (if any)">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <div class="address-line">
+                                <input
+                                    type="email"
+                                    id="updatePrimaryEmail"
+                                    placeholder="Primary"
+                                    required
+                                >
+                                <input type="email" id="updateAlternateEmail" placeholder="Alternate (if any)">
+                            </div>
+                        </div>
+                        <!-- Identity Verification Section -->
+                        <h2>Section 4: Identity Verification</h2>
+                        <div class="form-group">
+                            <label>Aadhar Card Details</label>
+                            <input
+                                type="text"
+                                id="updateAadharNumber"
+                                placeholder="Aadhar Number"
+                                required
+                            >
+                            <label>Upload Updated Aadhar Card (if changed)</label>
+                            <div class="file-upload">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('updateAadharFront').click()">Upload Front Side</button>
+                                <span class="file-name" id="updateAadharFrontName">No file selected</span>
+                                <input
+                                    type="file"
+                                    id="updateAadharFront"
+                                    accept="image/*,.pdf"
+                                    style="display: none;"
+                                >
+                            </div>
+                            <div class="file-upload">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('updateAadharBack').click()">Upload Back Side</button>
+                                <span class="file-name" id="updateAadharBackName">No file selected</span>
+                                <input
+                                    type="file"
+                                    id="updateAadharBack"
+                                    accept="image/*,.pdf"
+                                    style="display: none;"
+                                >
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Profile Photo (if changed)</label>
+                            <p class="sub-label">Upload a recent passport-sized photograph</p>
+                            <div class="file-upload">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('updateProfilePhoto').click()">Upload Photo</button>
+                                <span class="file-name" id="updateProfilePhotoName">No file selected</span>
+                                <input
+                                    type="file"
+                                    id="updateProfilePhoto"
+                                    accept="image/*"
+                                    style="display: none;"
+                                >
+                            </div>
+                        </div>
+                        <!-- Continue from the family members section in the form -->
+                        <h2>Section 5: Family Details</h2>
+                        <div class="form-group">
+                            <label>Family Members (Max 10)</label>
+                            <div id="updateFamilyMembers">
+                                <!-- Family Member 1 -->
+                                <div class="family-member" id="updateFamilyMember1">
+                                    <input
+                                        type="text"
+                                        id="updateFamilyName1"
+                                        placeholder="Full Name"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        id="updateFamilyRelationship1"
+                                        placeholder="Relationship"
+                                        required
+                                    >
+                                    <input
+                                        type="number"
+                                        id="updateFamilyAge1"
+                                        placeholder="Age"
+                                        required
+                                    >
+                                </div>
+                                <!-- Family Member 2 -->
+                                <div class="family-member" id="updateFamilyMember2">
+                                    <input type="text" id="updateFamilyName2" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship2" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge2" placeholder="Age">
+                                </div>
+                                <!-- Family Member 3 -->
+                                <div class="family-member" id="updateFamilyMember3">
+                                    <input type="text" id="updateFamilyName3" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship3" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge3" placeholder="Age">
+                                </div>
+                                <!-- Family Member 4 -->
+                                <div class="family-member" id="updateFamilyMember4">
+                                    <input type="text" id="updateFamilyName4" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship4" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge4" placeholder="Age">
+                                </div>
+                                <!-- Family Member 5 -->
+                                <div class="family-member" id="updateFamilyMember5">
+                                    <input type="text" id="updateFamilyName5" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship5" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge5" placeholder="Age">
+                                </div>
+                                <!-- Family Member 6 -->
+                                <div class="family-member" id="updateFamilyMember6">
+                                    <input type="text" id="updateFamilyName6" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship6" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge6" placeholder="Age">
+                                </div>
+                                <!-- Family Member 7 -->
+                                <div class="family-member" id="updateFamilyMember7">
+                                    <input type="text" id="updateFamilyName7" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship7" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge7" placeholder="Age">
+                                </div>
+                                <!-- Family Member 8 -->
+                                <div class="family-member" id="updateFamilyMember8">
+                                    <input type="text" id="updateFamilyName8" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship8" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge8" placeholder="Age">
+                                </div>
+                                <!-- Family Member 9 -->
+                                <div class="family-member" id="updateFamilyMember9">
+                                    <input type="text" id="updateFamilyName9" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship9" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge9" placeholder="Age">
+                                </div>
+                                <!-- Family Member 10 -->
+                                <div class="family-member" id="updateFamilyMember10">
+                                    <input type="text" id="updateFamilyName10" placeholder="Full Name">
+                                    <input type="text" id="updateFamilyRelationship10" placeholder="Relationship">
+                                    <input type="number" id="updateFamilyAge10" placeholder="Age">
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                class="btn btn-primary"
+                                style="margin-top: 10px;"
+                                onclick="addFamilyMember()"
+                                id="updateAddFamilyBtn"
+                            >+ Add Additional Family Member</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Emergency Contact Person</label>
+                            <input
+                                type="text"
+                                id="updateEmergencyName"
+                                placeholder="Name"
+                                required
+                            >
+                            <input
+                                type="text"
+                                id="updateEmergencyRelationship"
+                                placeholder="Relationship"
+                                required
+                            >
+                            <input
+                                type="tel"
+                                id="updateEmergencyMobile"
+                                placeholder="Mobile Number"
+                                required
+                            >
+                        </div>
+                        <!-- Declaration Section -->
+                        <h2>Section 6: Declaration</h2>
+                        <div class="form-group">
+                            <div class="declaration-box">
+                                <p>I,
+                                    <span id="updateDeclarationName"></span>, hereby declare that all the information provided in this application form is true and correct to the best of my knowledge. I understand that any false information may lead to the rejection of my application.
+                                </p>
+                                <div class="declaration-signature">
+                                    <div>
+                                        <label>Signature</label>
+                                        <input type="text" id="updateDeclarationSignature" required>
+                                    </div>
+                                    <div>
+                                        <label>Date</label>
+                                        <input type="date" id="updateDeclarationDate" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="updateAgreeTerms" required>
+                                I agree to the
+                                <a href="#" onclick="showTermsModal()">Terms & Conditions & Privacy Policy</a>
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            id="updateSubmitBtn"
+                            onclick="showPreview()"
+                            disabled
+                        >Preview Application</button>
+                        <!-- Preview Modal -->
+                        <div id="previewModal" class="modal">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h3 class="modal-title">Review Your Application</h3>
+                                    <button class="close-btn" onclick="closePreviewModal()">&times;</button>
+                                </div>
+                                <div class="preview-section">
+                                    <h3>Personal Information</h3>
+                                    <!-- Preview fields for personal information -->
+                                    <div class="preview-field">
+                                        <div class="preview-label">Full Name:</div>
+                                        <div class="preview-value" id="preview-fullName"></div>
+                                        <button class="edit-btn" onclick="editField('name')">Edit</button>
+                                    </div>
+                                    <!-- Add more preview fields similarly -->
+                                </div>
+                                <div class="preview-section">
+                                    <h3>Family Members</h3>
+                                    <div id="preview-familyMembers"></div>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="submitApplication()">Submit Application</button>
+                            </div>
+                        </div>
+                        <!-- Terms Modal -->
+                        <div id="termsModal" class="modal">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h3 class="modal-title">Terms & Conditions & Privacy Policy</h3>
+                                    <button class="close-btn" onclick="closeTermsModal()">&times;</button>
+                                </div>
+                                <div class="preview-section" style="max-height: 400px; overflow-y: auto;">
+                                    <h4>Terms & Conditions</h4>
+                                    <ol>
+                                        <li>
+                                            <strong>Eligibility:</strong>
+                                            Only individuals belonging to the Bhavsar Kshatriya community are eligible to apply for membership.
+                                        </li>
+                                        <li>
+                                            <strong>Accuracy of Information:</strong>
+                                            All information provided in this application must be true, complete, and accurate to the best of your knowledge. Submission of false or misleading information may result in rejection or cancellation of membership.
+                                        </li>
+                                        <li>
+                                            <strong>Document Submission:</strong>
+                                            You must upload valid and legible copies of the required documents (Aadhar Card, Photograph, etc.) as specified in the application form.
+                                        </li>
+                                        <li>
+                                            <strong>Verification:</strong>
+                                            The information and documents submitted will be verified by the Bhavsar Kshatriya Samaj. Additional documents may be requested if necessary.
+                                        </li>
+                                        <li>
+                                            <strong>Membership Approval:</strong>
+                                            Submission of this form does not guarantee membership. The decision of the Bhavsar Kshatriya Samaj is final and binding.
+                                        </li>
+                                        <li>
+                                            <strong>Usage of Information:</strong>
+                                            The information provided will be used solely for membership processing and community-related communication.
+                                        </li>
+                                        <li>
+                                            <strong>Code of Conduct:</strong>
+                                            Members are expected to abide by the rules and regulations of the Bhavsar Kshatriya Samaj.
+                                        </li>
+                                        <li>
+                                            <strong>Amendments:</strong>
+                                            The Samaj reserves the right to amend these terms and conditions at any time without prior notice.
+                                        </li>
+                                    </ol>
+                                    <h4>Privacy Policy</h4>
+                                    <ul>
+                                        <li>Your personal data will be kept confidential and will not be shared with third parties except as required by law or for membership verification purposes.</li>
+                                        <li>All data is stored securely and access is restricted to authorized personnel only.</li>
+                                        <li>You may request to update or delete your personal information by contacting the Samaj office.</li>
+                                    </ul>
+                                    <p>By clicking "I Agree", you confirm that you have read, understood, and accepted the above Terms & Conditions and Privacy Policy.</p>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="closeTermsModal()">I Agree</button>
+                            </div>
+                        </div>
+                        <!-- Success Modal -->
+                        <div id="successModal" class="modal">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h3 class="modal-title">Application Submitted</h3>
+                                    <button class="close-btn" onclick="closeSuccessModal()">&times;</button>
+                                </div>
+                                <div class="alert alert-success">
+                                    <p>Your application has been submitted successfully!</p>
+                                    <p>Application ID:
+                                        <span id="applicationId"></span>
+                                    </p>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="closeSuccessModal()">Close</button>
+                            </div>
+                        </div>
+                        <script>
+                    // Google Apps Script Deployment ID - Replace with your actual ID
+                    const scriptUrl = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+                    
+                    // Global variables
+                    let mobileOtp = '';
+                    let emailOtp = '';
+                    let mobileVerified = false;
+                    let emailVerified = false;
+                    let formData = {};
+                    
+
+                    
+
+
+
+                    
+                    function calculateAge() {
+                        const dob = new Date(document.getElementById('dob').value);
+                        if (isNaN(dob.getTime())) return;
+                        
+                        const today = new Date();
+                        let age = today.getFullYear() - dob.getFullYear();
+                        const monthDiff = today.getMonth() - dob.getMonth();
+                        
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                            age--;
+                        }
+                        
+                        document.getElementById('age').value = age;
+                        updateProgressBar();
+                    }
+                    
+
+                    function loadScript(src) {
+                        const script = document.createElement('script');
+                        script.src = src;
+                        script.async = true;
+                        document.body.appendChild(script);
+                    }
+
+                    window.addEventListener('load', function() {
+                        // Load these after main content
+                        loadScript('/js/lazy/analytics.js');
+                        loadScript('/js/lazy/chat-widget.js');
+                    });
+
+                    // Image lazy loading
+                    const lazyImages = document.querySelectorAll('img.lazy');
+
+                    const imageObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src;
+                        img.classList.add('loaded');
+                        observer.unobserve(img);
+                        }
+                    });
+                    });
+
+                    lazyImages.forEach(img => imageObserver.observe(img));
+
+                    // Promise rejection handler
+                    window.addEventListener('unhandledrejection', function(event) {
+                        console.error('Unhandled rejection:', event.reason);
+                        event.preventDefault();
+                    
+                        displayUserFriendlyError(event.reason || {
+                            message: 'An unexpected error occurred'
+                        });
+                    });
+                    
+                    // Show loading spinner
+                    function showLoading() {
+                        Swal.fire({
+                            title: 'Submitting...',
+                            html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>',
+                            showConfirmButton: false,
+                            allowOutsideClick: false
+                        });
+                    }
+                        </script>
+                        <!-- Logout button placed outside script tag -->
+                        <button onclick="logoutUser()" class="btn btn-danger" style="position: fixed; top: 20px; right: 20px; z-index: 2000;">Logout</button>
+                    </script>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>
+
+
+
+
