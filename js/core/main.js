@@ -7,33 +7,9 @@
  * initializing all core components and managing the application lifecycle.
  */
 
-// Import core dependencies
-import { Config } from './config.js';
-import { ErrorHandler } from './error-handler.js';
-import { AuthService } from '../modules/auth/auth.service.js';
-import { FormService } from '../modules/form/form.service.js';
-import { ApiService } from '../modules/api/api.service.js';
-import { DomUtils } from '../utils/dom.utils.js';
-import { LoadingUtils } from '../utils/loading.utils.js';
-
 // Main Application Class
 class BkjsApplication {
   constructor() {
-    // Initialize configuration
-    this.config = new Config();
-    
-    // Initialize error handler
-    this.errorHandler = new ErrorHandler();
-    
-    // Initialize services
-    this.authService = new AuthService(this);
-    this.formService = new FormService(this);
-    this.apiService = new ApiService(this);
-    
-    // Initialize utils
-    this.domUtils = new DomUtils();
-    this.loadingUtils = new LoadingUtils();
-    
     // Application state
     this.state = {
       isAuthenticated: false,
@@ -55,13 +31,13 @@ class BkjsApplication {
   async init() {
     try {
       // Show loading state
-      this.loadingUtils.showFullPageLoader('Initializing application...');
+      this.showFullPageLoader('Initializing application...');
       
       // Get CSRF token
       await this.getCsrfToken();
       
-      // Check for existing session
-      const session = this.authService.getSession();
+      // Check for existing session in localStorage
+      const session = this.getSession();
       if (session) {
         this.state.isAuthenticated = true;
         this.state.currentUser = session.user;
@@ -75,10 +51,56 @@ class BkjsApplication {
       window.addEventListener('unhandledrejection', this.handleError);
       
       // Hide loading state
-      this.loadingUtils.hideFullPageLoader();
+      this.hideFullPageLoader();
       
     } catch (error) {
       this.handleError(error);
+    }
+  }
+  
+  /**
+   * Get session from localStorage
+   */
+  getSession() {
+    try {
+      const sessionData = localStorage.getItem('bkjs_session');
+      if (sessionData) {
+        const session = JSON.parse(sessionData);
+        // Check if session is still valid (not expired)
+        if (session.expires && new Date(session.expires) > new Date()) {
+          return session;
+        } else {
+          // Remove expired session
+          localStorage.removeItem('bkjs_session');
+        }
+      }
+    } catch (error) {
+      console.error('Error getting session:', error);
+    }
+    return null;
+  }
+  
+  /**
+   * Show full page loader
+   */
+  showFullPageLoader(message = 'Loading...') {
+    const loader = document.createElement('div');
+    loader.id = 'globalLoader';
+    loader.className = 'global-loader';
+    loader.innerHTML = `
+      <div class="loader-spinner"></div>
+      <div class="loader-text">${message}</div>
+    `;
+    document.body.appendChild(loader);
+  }
+  
+  /**
+   * Hide full page loader
+   */
+  hideFullPageLoader() {
+    const loader = document.getElementById('globalLoader');
+    if (loader) {
+      loader.remove();
     }
   }
   
@@ -104,17 +126,42 @@ class BkjsApplication {
     // Log to console
     console.error('Application Error:', errorMessage, errorDetails);
     
-    // Show user-friendly error message
-    this.errorHandler.displayError(errorMessage);
+    // Show user-friendly error message using SweetAlert
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: errorMessage
+      });
+    } else {
+      alert(errorMessage);
+    }
     
     // Report to error tracking service in production
-    if (this.config.environment === 'production') {
-      this.apiService.logError({
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      this.logError({
         message: errorMessage,
         details: errorDetails,
         url: window.location.href,
         user: this.state.currentUser?.uniqueId || 'anonymous'
       });
+    }
+  }
+  
+  /**
+   * Log error to server
+   */
+  async logError(errorData) {
+    try {
+      await fetch(`${scriptUrl}?action=logError`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(errorData)
+      });
+    } catch (e) {
+      console.error('Failed to log error to server:', e);
     }
   }
   
@@ -125,24 +172,24 @@ class BkjsApplication {
   showView(viewName) {
     try {
       // Hide all views first
-      this.domUtils.hideElement('loginSection');
-      this.domUtils.hideElement('registrationSection');
-      this.domUtils.hideElement('updateSection');
+      this.hideElement('loginSection');
+      this.hideElement('registrationSection');
+      this.hideElement('updateSection');
       
       // Show the requested view
       switch(viewName) {
         case 'login':
-          this.domUtils.showElement('loginSection');
+          this.showElement('loginSection');
           this.state.activeForm = 'login';
           break;
           
         case 'register':
-          this.domUtils.showElement('registrationSection');
+          this.showElement('registrationSection');
           this.state.activeForm = 'register';
           break;
           
         case 'update':
-          this.domUtils.showElement('updateSection');
+          this.showElement('updateSection');
           this.state.activeForm = 'update';
           break;
           
@@ -150,8 +197,8 @@ class BkjsApplication {
           throw new Error(`Unknown view: ${viewName}`);
       }
       
-      // Reset any form errors
-      this.errorHandler.clearErrors();
+      // Clear any existing error messages
+      this.clearErrors();
       
     } catch (error) {
       this.handleError(error);
@@ -159,16 +206,46 @@ class BkjsApplication {
   }
   
   /**
+   * Helper method to show element
+   */
+  showElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.classList.remove('hidden');
+    }
+  }
+  
+  /**
+   * Helper method to hide element
+   */
+  hideElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.classList.add('hidden');
+    }
+  }
+  
+  /**
+   * Clear error messages
+   */
+  clearErrors() {
+    const errorElements = document.querySelectorAll('.alert-error');
+    errorElements.forEach(el => {
+      el.classList.add('hidden');
+      el.textContent = '';
+    });
+  }
+  
+  /**
    * Get CSRF token from server
    */
   async getCsrfToken() {
     try {
-      const response = await this.apiService.request({
-        action: 'getCsrfToken'
-      });
+      const response = await fetch(`${scriptUrl}?action=getCsrfToken`);
+      const data = await response.json();
       
-      if (response.success) {
-        this.state.csrfToken = response.csrfToken;
+      if (data.success) {
+        this.state.csrfToken = data.csrfToken;
       } else {
         throw new Error('Failed to get CSRF token');
       }
@@ -185,7 +262,7 @@ class BkjsApplication {
   async submitForm(formType, formData) {
     try {
       // Show loading state
-      this.loadingUtils.showButtonLoader(`#${formType}SubmitBtn`);
+      this.showButtonLoader(`#${formType}SubmitBtn`);
       
       // Add CSRF token to the data
       formData.csrfToken = this.state.csrfToken;
@@ -194,26 +271,61 @@ class BkjsApplication {
       const action = formType === 'register' ? 'submitApplication' : 'updateUserData';
       
       // Make the API request
-      const response = await this.apiService.request({
-        action,
-        ...formData
+      const response = await fetch(scriptUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action,
+          ...formData
+        })
       });
       
-      if (response.success) {
+      const data = await response.json();
+      
+      if (data.success) {
         // Handle success response
         if (formType === 'register') {
-          this.showSuccessModal('Application submitted successfully!', response.applicationId);
+          this.showSuccessModal('Application submitted successfully!', data.applicationId);
         } else {
           this.showSuccessModal('Update submitted successfully!', this.state.currentUser.uniqueId);
         }
       } else {
-        throw new Error(response.message || 'Submission failed');
+        throw new Error(data.message || 'Submission failed');
       }
       
     } catch (error) {
       this.handleError(error);
     } finally {
-      this.loadingUtils.hideButtonLoader(`#${formType}SubmitBtn`);
+      this.hideButtonLoader(`#${formType}SubmitBtn`);
+    }
+  }
+  
+  /**
+   * Show button loader
+   */
+  showButtonLoader(buttonSelector) {
+    const button = document.querySelector(buttonSelector);
+    if (button) {
+      button.disabled = true;
+      const originalText = button.textContent;
+      button.setAttribute('data-original-text', originalText);
+      button.innerHTML = `${originalText} <span class="element-spinner"></span>`;
+    }
+  }
+  
+  /**
+   * Hide button loader
+   */
+  hideButtonLoader(buttonSelector) {
+    const button = document.querySelector(buttonSelector);
+    if (button) {
+      button.disabled = false;
+      const originalText = button.getAttribute('data-original-text');
+      if (originalText) {
+        button.textContent = originalText;
+      }
     }
   }
   
@@ -224,14 +336,16 @@ class BkjsApplication {
    */
   showSuccessModal(message, referenceId) {
     try {
-      const modal = this.domUtils.getElement('successModal');
-      const messageEl = this.domUtils.getElement('successMessage');
-      const idEl = this.domUtils.getElement('successAppId');
-      
-      messageEl.textContent = message;
-      idEl.textContent = referenceId;
-      
-      this.domUtils.showModal(modal);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: message,
+          footer: `Reference ID: ${referenceId}`
+        });
+      } else {
+        alert(`${message}\nReference ID: ${referenceId}`);
+      }
     } catch (error) {
       this.handleError(error);
     }
@@ -240,6 +354,11 @@ class BkjsApplication {
 
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+  // Make sure global variables are available
+  if (typeof scriptUrl === 'undefined') {
+    window.scriptUrl = window.AppConfig?.API?.BASE_URL || 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+  }
+  
   const app = new BkjsApplication();
   app.init();
   
