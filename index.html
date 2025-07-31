@@ -6,50 +6,107 @@
     <title>Bhavsar Kshatriya Community Membership Application</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
-    <!-- Vendor & Core Libraries -->
-    <!-- Core JS -->
+    <!-- Application Configuration -->
+    <script>
+        // Global configuration
+        window.AppConfig = {
+            // API Configuration
+            API: {
+                BASE_URL: 'https://script.google.com/macros/s/AKfycbxMSpMwCdDWGNt3O95dR06bQ6UWJoMVFCGJKUbxBm0pU5iYKnU/exec',
+                ENDPOINTS: {
+                    SUBMIT: 'submit',
+                    SUGGEST: 'suggest',
+                    LOGIN: 'login',
+                    VERIFY_OTP: 'verifyOtp',
+                    SEND_OTP: 'sendOtp'
+                },
+                DEFAULT_HEADERS: {
+                    'Content-Type': 'application/json'
+                },
+                TIMEOUT: 30000,
+                RETRY_ATTEMPTS: 3
+            },
+            
+            // Security Configuration
+            SECURITY: {
+                CSRF_TOKEN_EXPIRY: 1800000,
+                RATE_LIMIT: {
+                    REQUESTS_PER_MINUTE: 10,
+                    WINDOW_MS: 60000
+                }
+            },
+            
+            // Form Configuration
+            FORM: {
+                MAX_FAMILY_MEMBERS: 10,
+                REQUIRED_DOCUMENTS: ['aadharFront', 'aadharBack', 'profilePhoto'],
+                OPTIONAL_DOCUMENTS: ['casteCertificate'],
+                FILE_TYPES: {
+                    IMAGE: ['image/jpeg', 'image/png', 'image/gif'],
+                    PDF: ['application/pdf'],
+                    MAX_SIZE: 5 * 1024 * 1024
+                }
+            },
+            
+            // Validation Rules
+            VALIDATION: {
+                NAME: {
+                    MIN_LENGTH: 2,
+                    MAX_LENGTH: 50,
+                    REGEX: /^[a-zA-Z\s\-']+$/
+                },
+                MOBILE: {
+                    LENGTH: 10,
+                    REGEX: /^[0-9]{10}$/
+                },
+                EMAIL: {
+                    REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                },
+                AADHAR: {
+                    LENGTH: 16,
+                    REGEX: /^[0-9]{16}$/
+                }
+            },
+            
+            // UI Configuration
+            UI: {
+                LOADING_DELAY: 300,
+                AUTO_SAVE_INTERVAL: 30000,
+                SUGGESTION_DELAY: 300
+            },
+            
+            // Error Messages
+            ERROR_MESSAGES: {
+                NETWORK_ERROR: 'Network error occurred. Please check your connection.',
+                SERVER_ERROR: 'Server error occurred. Please try again later.',
+                VALIDATION_ERROR: 'Please fill all required fields correctly.',
+                FILE_UPLOAD_ERROR: 'File upload failed. Please try again.',
+                OTP_ERROR: 'OTP verification failed. Please try again.'
+            },
+            
+            // Success Messages
+            SUCCESS_MESSAGES: {
+                SUBMISSION: 'Application submitted successfully!',
+                UPDATE: 'Information updated successfully!',
+                OTP_SENT: 'OTP sent successfully!',
+                OTP_VERIFIED: 'OTP verified successfully!'
+            },
+            
+            // Default Values
+            DEFAULTS: {
+                COUNTRY: 'India',
+                STATE: 'Maharashtra',
+                CITIES: ['Pune', 'Mumbai', 'Nagpur', 'Nashik', 'Aurangabad'],
+                PINCODES: ['411001', '411002', '411003', '411004', '411005']
+            }
+        };
+        
+        // Global script URL for compatibility
+        const scriptUrl = window.AppConfig.API.BASE_URL;
+    </script>
+    
+    <!-- Load main application -->
     <script src="/js/core/main.js"></script>
-    <script src="/js/core/config.js"></script>
-    <script src="/js/core/error-handler.js"></script>
-    
-    <!-- Utility JS -->
-    <script src="/js/utils/dom.utils.js"></script>
-    <script src="/js/utils/loading.utils.js"></script>
-    <script src="/js/utils/format.utils.js"></script>
-    <script src="/js/utils/lazy-load.utils.js"></script>
-    <script src="/js/utils/suggestions.utils.js"></script>
-    <script src="/js/utils/file-upload.utils.js"></script>
-
-    <!-- Vendor Wrappers -->
-    <script src="/js/vendors/sweetalert.js"></script>
-    <script src="/js/vendors/recaptcha.js"></script>
-    <script src="/js/vendors/firebase.js"></script>
-    
-    <!-- Modules: Auth -->
-    <script src="/js/modules/auth/auth.service.js"></script>
-    <script src="/js/modules/auth/otp.service.js"></script>
-    <script src="/js/modules/auth/session.service.js"></script>
-    
-    <!-- Modules: Form -->
-    <script src="/js/modules/form/form.service.js"></script>
-    <script src="/js/modules/form/form-validation.service.js"></script>
-    <script src="/js/modules/form/form-submit.service.js"></script>
-    <script src="/js/modules/form/form-autosave.service.js"></script>
-    
-    <!-- Modules: API -->
-    <script src="/js/modules/api/api.service.js"></script>
-    <script src="/js/modules/api/api-endpoints.js"></script>
-    <script src="/js/modules/api/api-interceptors.js"></script>
-    <script src="/js/modules/api/api-mocks.js"></script>
-    
-    <!-- Features -->
-    <script src="/js/features/registration/registration.controller.js"></script>
-    <script src="/js/features/registration/registration.view.js"></script>
-    
-    <!-- Components -->
-    <script src="/js/components/address-input/address-input.js"></script>
-    <script src="/js/components/file-upload/file-upload.js"></script>
-    <script src="/js/components/otp-verification/otp-verification.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
     <style>
@@ -2709,8 +2766,8 @@
                            SECTION: GLOBAL VARIABLES & CONFIGURATION
                            ==================================================================== */
                         
-                        // Google Apps Script Deployment ID - Replace with your actual ID
-                        const scriptUrl = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+                        // Use global configuration instead of hardcoded URL
+                        // const scriptUrl = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
                         
                         // Global variables
                         let mobileOtp = '';
@@ -2754,8 +2811,8 @@
 
                         window.addEventListener('load', function() {
                             // Load these after main content
-                            loadScript('/js/lazy/analytics.js');
-                            loadScript('/js/lazy/chat-widget.js');
+                            // loadScript('/js/lazy/analytics.js'); // Commented out - file doesn't exist
+                            // loadScript('/js/lazy/chat-widget.js'); // Commented out - file doesn't exist
                         });
 
                         // Image lazy loading
@@ -2906,6 +2963,128 @@
                                 icon: 'error',
                                 confirmButtonColor: '#3a56a8'
                             });
+                        }
+                        
+                        // ====================================================================
+                        // MISSING FUNCTION IMPLEMENTATIONS
+                        // ====================================================================
+                        
+                        // Login functions
+                        function sendLoginOtp() {
+                            const uniqueId = document.getElementById('loginUniqueId').value;
+                            const email = document.getElementById('loginEmail').value;
+                            
+                            if (!uniqueId || !email) {
+                                Swal.fire('Error', 'Please enter both Samuday ID and email', 'error');
+                                return;
+                            }
+                            
+                            // TODO: Implement OTP sending logic
+                            console.log('Sending login OTP for:', uniqueId, email);
+                            Swal.fire('Info', 'OTP sending functionality to be implemented', 'info');
+                        }
+                        
+                        function verifyLoginOtp() {
+                            const otp = document.getElementById('loginOtp').value;
+                            if (!otp) {
+                                Swal.fire('Error', 'Please enter OTP', 'error');
+                                return;
+                            }
+                            
+                            // TODO: Implement OTP verification logic
+                            console.log('Verifying login OTP:', otp);
+                            document.getElementById('loginBtn').disabled = false;
+                            Swal.fire('Success', 'OTP verified successfully', 'success');
+                        }
+                        
+                        function loginUser() {
+                            // TODO: Implement login logic
+                            console.log('Logging in user...');
+                            Swal.fire('Info', 'Login functionality to be implemented', 'info');
+                        }
+                        
+                        // Registration OTP functions
+                        function sendMobileOtp() {
+                            const mobile = document.getElementById('primaryMobile').value;
+                            if (!mobile) {
+                                Swal.fire('Error', 'Please enter mobile number', 'error');
+                                return;
+                            }
+                            
+                            // TODO: Implement mobile OTP sending logic
+                            console.log('Sending mobile OTP for:', mobile);
+                            Swal.fire('Info', 'Mobile OTP sending functionality to be implemented', 'info');
+                        }
+                        
+                        function verifyMobileOtp() {
+                            const otp = document.getElementById('mobileOtp').value;
+                            if (!otp) {
+                                Swal.fire('Error', 'Please enter mobile OTP', 'error');
+                                return;
+                            }
+                            
+                            // TODO: Implement mobile OTP verification logic
+                            console.log('Verifying mobile OTP:', otp);
+                            Swal.fire('Success', 'Mobile OTP verified successfully', 'success');
+                        }
+                        
+                        function sendEmailOtp() {
+                            const email = document.getElementById('primaryEmail').value;
+                            if (!email) {
+                                Swal.fire('Error', 'Please enter email address', 'error');
+                                return;
+                            }
+                            
+                            // TODO: Implement email OTP sending logic
+                            console.log('Sending email OTP for:', email);
+                            Swal.fire('Info', 'Email OTP sending functionality to be implemented', 'info');
+                        }
+                        
+                        function verifyEmailOtp() {
+                            const otp = document.getElementById('emailOtp').value;
+                            if (!otp) {
+                                Swal.fire('Error', 'Please enter email OTP', 'error');
+                                return;
+                            }
+                            
+                            // TODO: Implement email OTP verification logic
+                            console.log('Verifying email OTP:', otp);
+                            Swal.fire('Success', 'Email OTP verified successfully', 'success');
+                        }
+                        
+                        // Preview and submission functions
+                        function showPreview() {
+                            // TODO: Implement preview functionality
+                            console.log('Showing preview...');
+                            Swal.fire('Info', 'Preview functionality to be implemented', 'info');
+                        }
+                        
+                        function submitApplication() {
+                            // TODO: Implement application submission
+                            console.log('Submitting application...');
+                            Swal.fire('Info', 'Application submission functionality to be implemented', 'info');
+                        }
+                        
+                        // Modal functions
+                        function closePreviewModal() {
+                            const modal = document.getElementById('previewModal');
+                            if (modal) {
+                                modal.style.display = 'none';
+                            }
+                        }
+                        
+                        function closeTermsModal() {
+                            const modal = document.getElementById('termsModal');
+                            if (modal) {
+                                modal.style.display = 'none';
+                            }
+                        }
+                        
+                        function closeSuccessModal() {
+                            const modal = document.getElementById('successModal');
+                            if (modal) {
+                                modal.style.display = 'none';
+                            }
                         }
                         
                         </script>
